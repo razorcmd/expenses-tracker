@@ -1,0 +1,21 @@
+{
+  "name": "Pelacak Pengeluaran Harian",
+  "short_name": "Expenses",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#EBD9CE",
+  "theme_color": "#A57D65",
+  "description": "Aplikasi sederhana untuk melacak pengeluaran harian Anda.",
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

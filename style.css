@@ -164,9 +164,27 @@ input:focus, select:focus {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem; /* Sedikit lebih banyak spasi */
     font-family: 'Roboto Mono', monospace;
     gap: 1rem;
+    animation: slideIn 0.5s ease-out forwards; /* Animasi saat muncul */
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Transisi untuk hover */
+}
+
+.expense-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .expense-icon {
@@ -212,7 +230,7 @@ input:focus, select:focus {
 
 .delete-btn:hover {
     transform: scale(1.2);
-    color: #a04141;
+    color: #E74C3C; /* Warna lebih cerah saat hover */
 }
 
 .message {

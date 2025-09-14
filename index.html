@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Expense Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#A57D65"/>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js" defer></script>
@@ -61,6 +64,10 @@
         <div id="syncSection" class="summary mt-4 hidden">
             <h2 class="text-lg font-semibold mb-2">Sinkronkan ke Perangkat Lain</h2>
             <p class="text-sm mb-3">Buka link di bawah ini pada perangkat lain untuk melihat data yang sama.</p>
+            <!-- Tempat untuk menampilkan QR Code -->
+            <div class="qr-container">
+                <canvas id="qrCodeCanvas"></canvas>
+            </div>
             <label for="syncLinkInput">Link Sinkronisasi Anda:</label>
             <input type="text" id="syncLinkInput" readonly 
                    style="cursor: copy; background-color: rgba(0,0,0,0.05); margin-top: 0.5rem;" 
@@ -109,5 +116,15 @@
       const __firebase_config = JSON.stringify(firebaseConfigObject);
     </script>
     <script src="script.js" defer></script>
+    <script>
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('ServiceWorker registrasi berhasil: ', registration))
+                    .catch(err => console.log('ServiceWorker registrasi gagal: ', err));
+            });
+        }
+    </script>
 </body>
 </html>

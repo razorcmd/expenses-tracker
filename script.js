@@ -112,8 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const dailySummary = {};
         if (expenses.length === 0) {
-            expenseList.innerHTML = '<p class="text-center text-gray-500">Belum ada pengeluaran.</p>';
-            summaryContent.innerHTML = '<p class="text-center text-gray-500">Belum ada ringkasan.</p>';
+            expenseList.innerHTML = `
+                <div style="text-align: center; padding: 2rem; background: rgba(255,255,255,0.1); border-radius: 10px; border: 1px solid var(--glass-border);">
+                    <p style="font-size: 2.5rem; margin-bottom: 0.5rem;">📝</p>
+                    <p style="font-weight: 600; font-size: 1.1rem;">Belum Ada Pengeluaran</p>
+                    <p style="font-size: 0.9em; color: var(--primary-hover);">Coba tambahkan transaksi pertamamu untuk memulai!</p>
+                </div>`;
+            summaryContent.innerHTML = '<p style="text-align: center; color: var(--primary-hover);">Ringkasan akan muncul di sini.</p>';
             // Sembunyikan chart jika tidak ada data
             chartContainer.classList.add('hidden');
             if (expenseChartInstance) {
