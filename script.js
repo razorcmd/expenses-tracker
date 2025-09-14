@@ -485,41 +485,62 @@ document.addEventListener('DOMContentLoaded', () => {
         hideApiMessage();
     });
 
-    // Tampilkan pesan saat aplikasi pertama kali mencoba terhubung
-    showApiMessage("Menghubungkan ke server...", "success");
+    // --- LOGIKA SINKRONISASI BARU DENGAN LOCALSTORAGE ---
+    showApiMessage("Menghubungkan ke server...", "success"); // Tampilkan pesan awal
 
-    // --- LOGIKA SINKRONISASI BARU ---
+    const savedUid = localStorage.getItem('expenseTrackerUid');
     const urlParams = new URLSearchParams(window.location.search);
     const uidFromUrl = urlParams.get('uid');
 
-    if (uidFromUrl) {
-        // Jika ada UID di URL, gunakan itu sebagai ID pengguna
-        console.log("UID ditemukan di URL:", uidFromUrl);
-        userId = uidFromUrl;
+    // Fungsi untuk membuat QR Code (diambil dari langkah sebelumnya)
+    const generateQRCode = (url) => {
+        const qrCodeCanvas = document.getElementById('qrCodeCanvas');
+        if (qrCodeCanvas && typeof QRious !== 'undefined') {
+            new QRious({
+                element: qrCodeCanvas,
+                value: url,
+                size: 180,
+                padding: 10,
+            });
+        }
+    };
+
+    const initializeAppWithUser = (uid) => {
+        userId = uid;
+        // Simpan UID ke localStorage agar diingat saat PWA dibuka
+        localStorage.setItem('expenseTrackerUid', uid);
+        
         hideApiMessage();
         setupRealtimeDataListener();
-        // Tampilkan juga link sinkronisasinya agar mudah di-copy lagi
-        syncLinkInput.value = window.location.href;
+        
+        // Perbarui dan tampilkan UI sinkronisasi
+        const syncUrl = `${window.location.origin}${window.location.pathname}?uid=${userId}`;
+        syncLinkInput.value = syncUrl;
+        generateQRCode(syncUrl);
         syncSection.classList.remove('hidden');
-    } else {
-        // Jika tidak ada UID di URL, lakukan login anonim seperti biasa
-        console.log("Tidak ada UID di URL, melakukan sign-in anonim...");
-        authInstance.signInAnonymously().catch((error) => {
-            console.error("Gagal melakukan autentikasi anonim:", error);
-            showApiMessage("Gagal terhubung. Pastikan metode 'Anonymous' aktif di Firebase.", "error");
-        });
+    };
 
-        // Listener untuk mendapatkan UID baru setelah login berhasil
-        authInstance.onAuthStateChanged((user) => {
-            if (user && !userId) { // Pastikan hanya dijalankan sekali
-                hideApiMessage();
-                userId = user.uid;
-                console.log("Berhasil login anonim, UID baru:", userId);
-                const syncUrl = `${window.location.origin}${window.location.pathname}?uid=${userId}`;
-                syncLinkInput.value = syncUrl;
-                syncSection.classList.remove('hidden');
-                setupRealtimeDataListener();
-            }
-        });
+    if (uidFromUrl) {
+        // Prioritas 1: Jika ada UID di URL (dari QR scan/link), gunakan dan simpan.
+        console.log("UID dari URL ditemukan, menyimpan ke localStorage:", uidFromUrl);
+        initializeAppWithUser(uidFromUrl);
+    } else if (savedUid) {
+        // Prioritas 2: Gunakan UID dari localStorage jika tidak ada dari URL.
+        console.log("UID dari localStorage ditemukan:", savedUid);
+        initializeAppWithUser(savedUid);
+    } else {
+        // Prioritas 3: Buat pengguna anonim baru jika tidak ada sama sekali.
+        console.log("Tidak ada UID di URL, melakukan sign-in anonim...");
+        authInstance.signInAnonymously()
+            .then(userCredential => {
+                if (userCredential.user) {
+                    console.log("Berhasil login anonim, UID baru:", userCredential.user.uid);
+                    initializeAppWithUser(userCredential.user.uid);
+                }
+            })
+            .catch((error) => {
+                console.error("Gagal melakukan autentikasi anonim:", error);
+                showApiMessage("Gagal terhubung. Pastikan metode 'Anonymous' aktif di Firebase.", "error");
+            });
     }
 });
