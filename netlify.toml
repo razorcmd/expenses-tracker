@@ -1,0 +1,5 @@
+[build]
+  # Direktori berisi file statis (HTML, CSS, JS) yang akan di-publish.
+  publish = "/"
+  # Direktori tempat serverless functions berada.
+  functions = "netlify/functions"

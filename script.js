@@ -63,8 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let detectedItems = [];
 
     // --- URL Proxy Aman ke Gemini API ---
-    // URL ini akan kita dapatkan dari Render.com setelah deploy
-    const geminiProxyUrl = "https://NAMA-SERVICE-ANDA.onrender.com/call-gemini"; // <<< GANTI INI NANTI
+    // Ini adalah path ke serverless function kita di Netlify.
+    const geminiProxyUrl = "/.netlify/functions/gemini-proxy";
 
     // Firebase Initialization and Authentication
     const firebaseConfig = JSON.parse(__firebase_config);
