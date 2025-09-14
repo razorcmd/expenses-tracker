@@ -6,6 +6,7 @@
     <title>Daily Expense Tracker</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js" defer></script>
@@ -48,6 +49,11 @@
 
             <button type="submit" class="btn-submit">Simpan Pengeluaran</button>
         </form>
+
+        <!-- Kontainer untuk Chart -->
+        <div id="chartContainer" class="chart-container hidden">
+            <canvas id="expenseChart"></canvas>
+        </div>
 
         <button type="button" id="analyzeExpensesBtn" class="btn-api mt-6">✨ Analisis Pengeluaran</button>
 

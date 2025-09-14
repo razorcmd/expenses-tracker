@@ -147,6 +147,19 @@ input:focus, select:focus {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
+/* Gaya untuk kontainer chart */
+.chart-container {
+    position: relative;
+    margin: 2rem auto 0 auto; /* Margin atas, tengahkan, tanpa margin bawah */
+    height: 300px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
 .expense-item {
     display: flex;
     justify-content: space-between;
@@ -271,4 +284,21 @@ input:focus, select:focus {
 .modal-content .btn-submit,
 .modal-content .btn-api {
     width: 100%;
+}
+
+/* Animasi Loader */
+.loader {
+    border: 5px solid rgba(255, 255, 255, 0.3); /* Lingkaran dasar yang lebih soft */
+    border-top-color: var(--primary-color); /* Warna utama untuk bagian yang berputar */
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 1.5rem auto; /* Memberi jarak dan menengahkan loader */
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }

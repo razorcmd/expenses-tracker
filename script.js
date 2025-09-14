@@ -58,9 +58,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const detectedItemsList = document.getElementById('detectedItemsList');
     const confirmItemsBtn = document.getElementById('confirmItemsBtn');
     const cancelModalBtn = document.getElementById('cancelModalBtn');
+    const loader = document.getElementById('loader');
+    const chartContainer = document.getElementById('chartContainer');
+    const chartCanvas = document.getElementById('expenseChart');
 
     let userId = null;
     let detectedItems = [];
+    let expenseChartInstance = null; // Untuk menyimpan instance chart
 
     // --- URL Proxy Aman ke Gemini API ---
     // Ini adalah path ke serverless function kita di Netlify.
@@ -108,6 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (expenses.length === 0) {
             expenseList.innerHTML = '<p class="text-center text-gray-500">Belum ada pengeluaran.</p>';
             summaryContent.innerHTML = '<p class="text-center text-gray-500">Belum ada ringkasan.</p>';
+            // Sembunyikan chart jika tidak ada data
+            chartContainer.classList.add('hidden');
+            if (expenseChartInstance) {
+                expenseChartInstance.destroy();
+                expenseChartInstance = null;
+            }
             return;
         }
 
@@ -168,6 +178,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const hideApiMessage = () => {
         apiMessageDiv.style.display = 'none';
+    };
+
+    // Fungsi baru untuk mengontrol loader
+    const showLoader = () => {
+        if (loader) loader.classList.remove('hidden');
+    };
+
+    const hideLoader = () => {
+        if (loader) loader.classList.add('hidden');
     };
 
     // Event listener untuk menghapus item
@@ -235,7 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        showApiMessage("Menganalisis pengeluaran Anda...", "success");
+        hideApiMessage();
+        showLoader();
 
         const prompt = `Analisis data pengeluaran harian berikut dan berikan ringkasan dalam satu paragraf. Soroti tren, pengeluaran terbesar, dan total pengeluaran mingguan/bulanan. Data dalam format JSON: ${JSON.stringify(expenses)}`;
 
@@ -259,6 +279,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             showApiMessage("Terjadi kesalahan saat menghubungi API.", "error");
             console.error(error);
+        } finally {
+            hideLoader();
         }
     });
 
@@ -271,7 +293,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            showApiMessage("Mencari kategori yang cocok...", "success");
+            hideApiMessage();
+            showLoader();
 
             const prompt = `Berikan satu kata kategori untuk deskripsi pengeluaran berikut: "${description}". Pilih dari kategori yang sudah umum seperti: Makanan, Transportasi, Belanja, Hiburan, Tagihan, Lain-lain. Berikan hanya nama kategori, tanpa penjelasan.`;
 
@@ -303,6 +326,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 showApiMessage("Terjadi kesalahan saat menyarankan kategori.", "error");
                 console.error(error);
+            } finally {
+                hideLoader();
             }
         });
     }
@@ -316,7 +341,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        showApiMessage("Mendeteksi item dari deskripsi...", "success");
+        hideApiMessage();
+        showLoader();
         
         const prompt = `Ekstrak setiap item, harga, kategori, tempat pembelian, dan metode pembayaran dari teks berikut: "${description}". Kategorikan setiap item ke dalam: Makanan, Transportasi, Belanja, Hiburan, Tagihan, atau Lain-lain. Jika harga, tempat, atau metode pembayaran tidak disebutkan, gunakan nilai null atau string kosong. Kembalikan hasilnya sebagai array JSON yang valid. Contoh input "saya tadi beli rokok di warung madua kisma seharga 2500 bayarnya pakai qris mandiri" harus menghasilkan [{"item": "rokok", "harga": 2500, "kategori": "Belanja", "tempat": "warung madua kisma", "metodePembayaran": "qris mandiri"}]. Jangan sertakan teks atau penjelasan lain, hanya array JSON.`;
 
@@ -354,7 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Array.isArray(detectedItems) && detectedItems.length > 0) {
                 renderDetectedItems(detectedItems);
                 detectionModal.classList.remove('hidden');
-                hideApiMessage();
             } else {
                 showApiMessage("Tidak ada item yang dapat dideteksi dari deskripsi.", "error");
             }
@@ -365,6 +390,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result) {
                 console.error("Raw API response that caused the error:", result);
             }
+        } finally {
+            hideLoader();
         }
     });
 
