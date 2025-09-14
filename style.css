@@ -256,6 +256,18 @@ input:focus, select:focus {
     text-align: center;
 }
 
+/* Gaya untuk list item yang bisa di-scroll di dalam modal */
+#detectedItemsList {
+    max-height: 45vh; /* Batasi tinggi list, misal 45% dari tinggi viewport */
+    overflow-y: auto; /* Tambahkan scrollbar vertikal jika kontennya lebih panjang */
+    margin: 1.5rem 0; /* Beri jarak dari judul dan tombol */
+    padding: 1rem;    /* Beri padding di dalam area list */
+    background: rgba(0,0,0,0.05); /* Latar belakang sedikit berbeda untuk area scroll */
+    border-radius: 10px;
+    /* Menambahkan sedikit padding di kanan agar scrollbar tidak menempel konten */
+    padding-right: 1.5rem; 
+}
+
 .modal-content .btn-submit,
 .modal-content .btn-api {
     width: 100%;
