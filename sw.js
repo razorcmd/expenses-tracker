@@ -1,4 +1,4 @@
-const CACHE_NAME = 'expense-tracker-v2'; // Versi cache dinaikkan
+const CACHE_NAME = 'expense-tracker-v3'; // Versi cache dinaikkan lagi untuk memicu update
 const urlsToCache = [
   '/',
   '/index.html',
@@ -24,7 +24,7 @@ self.addEventListener('install', event => {
 });
 
 // Event 'activate': Membersihkan cache lama saat service worker baru aktif.
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -41,13 +41,26 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Event 'fetch': Sajikan file dari cache jika tersedia, jika tidak, ambil dari jaringan.
-self.addEventListener('fetch', event => {
+// Event 'fetch': Menerapkan strategi "Network first, falling back to cache".
+self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Jika ada di cache, kembalikan dari cache. Jika tidak, ambil dari jaringan.
-        return response || fetch(event.request);
-      })
+    // 1. Coba ambil dari jaringan terlebih dahulu
+    fetch(event.request).then(networkResponse => {
+      // Jika berhasil, simpan ke cache dan kembalikan respons jaringan
+      return caches.open(CACHE_NAME).then(cache => {
+        cache.put(event.request, networkResponse.clone());
+        return networkResponse;
+      });
+    }).catch(() => {
+      // 2. Jika jaringan gagal (offline), coba ambil dari cache
+      return caches.match(event.request).then(cachedResponse => {
+        // Kembalikan dari cache jika ada, jika tidak, biarkan browser handle (akan gagal)
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        // Optional: Anda bisa mengembalikan halaman offline kustom di sini
+        // return caches.match('/offline.html');
+      });
+    })
   );
 });
