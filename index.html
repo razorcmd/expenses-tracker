@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js" defer></script>
+</head>
+<body>
+    <canvas id="bg-animation"></canvas>
+
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center mb-6">Pelacak Pengeluaran Harian</h1>
+
+        <form id="expenseForm">
+            <div class="form-group">
+                <label for="tanggal">Tanggal:</label>
+                <input type="date" id="tanggal" name="tanggal" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="deskripsi">Deskripsi:</label>
+                <input type="text" id="deskripsi" name="deskripsi" placeholder="Contoh: Beli Kopi 15000, Roti 10000" required>
+            </div>
+            
+            <button type="button" id="detectItemsBtn" class="btn-api">✨ Deteksi Item</button>
+            <div class="form-group">
+                <label for="kategori">Kategori:</label>
+                <select id="kategori" name="kategori" required>
+                    <option value="">-- Pilih Kategori --</option>
+                    <option value="Makanan">Makanan</option>
+                    <option value="Transportasi">Transportasi</option>
+                    <option value="Belanja">Belanja</option>
+                    <option value="Hiburan">Hiburan</option>
+                    <option value="Tagihan">Tagihan</option>
+                    <option value="Lain-lain">Lain-lain</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="jumlah">Jumlah (Rp):</label>
+                <input type="number" id="jumlah" name="jumlah" min="0" step="100" placeholder="Rp" required>
+            </div>
+
+            <button type="submit" class="btn-submit">Simpan Pengeluaran</button>
+        </form>
+
+        <button type="button" id="analyzeExpensesBtn" class="btn-api mt-6">✨ Analisis Pengeluaran</button>
+
+        <div class="summary mt-8 rounded-lg">
+            <h2 class="text-xl font-semibold mb-3">Ringkasan Pengeluaran</h2>
+            <div id="summaryContent" class="space-y-2">
+                <!-- Ringkasan pengeluaran harian akan ditampilkan di sini -->
+            </div>
+        </div>
+
+        <div id="expenseList" class="mt-6">
+            <!-- Daftar transaksi akan ditampilkan di sini -->
+        </div>
+
+        <div id="message" class="message hidden"></div>
+        <div id="apiMessage" class="message hidden"></div>
+    </div>
+
+    <!-- Modal untuk Menampilkan Hasil Deteksi -->
+    <div id="detectionModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Item yang Dideteksi</h2>
+            <div id="detectedItemsList" class="space-y-4">
+                <!-- Daftar item dari Gemini API akan muncul di sini -->
+            </div>
+            <button id="confirmItemsBtn" class="btn-submit mt-6">Simpan sebagai Transaksi</button>
+            <button id="cancelModalBtn" class="btn-api mt-4">Batalkan</button>
+        </div>
+    </div>
+    <script>
+      // PASTE KONFIGURASI FIREBASE ANDA DI SINI
+      // Ganti objek di bawah ini dengan konfigurasi yang Anda dapatkan dari Firebase Console
+      const firebaseConfigObject = {
+        apiKey: "AIzaSyD_33r5f_4M7aX0XuyhRIFGoyPESfjGnUI",
+        authDomain: "expenses-a36ff.firebaseapp.com",
+        projectId: "expenses-a36ff",
+        storageBucket: "expenses-a36ff.firebasestorage.app",
+        messagingSenderId: "306521276424",
+        appId: "1:306521276424:web:654020afbefbbd4d8311bd",
+        measurementId: "G-1NSLPX2568"
+      };
+      // Mengubah objek menjadi string JSON untuk digunakan di script.js
+      const __firebase_config = JSON.stringify(firebaseConfigObject);
+    </script>
+    <script src="script.js" defer></script>
+</body>
+</html>
