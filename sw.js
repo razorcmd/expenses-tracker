@@ -1,4 +1,4 @@
-const CACHE_NAME = 'expense-tracker-v1';
+const CACHE_NAME = 'expense-tracker-v2'; // Versi cache dinaikkan
 const urlsToCache = [
   '/',
   '/index.html',
@@ -20,6 +20,24 @@ self.addEventListener('install', event => {
         console.log('Cache dibuka, aset ditambahkan');
         return cache.addAll(urlsToCache);
       })
+  );
+});
+
+// Event 'activate': Membersihkan cache lama saat service worker baru aktif.
+self.addEventListener('activate', event => {
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          // Jika nama cache tidak ada di dalam whitelist, hapus.
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Service Worker: Menghapus cache lama -> ', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
   );
 });
 
