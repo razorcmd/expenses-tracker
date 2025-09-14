@@ -57,6 +57,16 @@
 
         <button type="button" id="analyzeExpensesBtn" class="btn-api mt-6">✨ Analisis Pengeluaran</button>
 
+        <!-- Bagian Baru untuk Link Sinkronisasi -->
+        <div id="syncSection" class="summary mt-4 hidden">
+            <h2 class="text-lg font-semibold mb-2">Sinkronkan ke Perangkat Lain</h2>
+            <p class="text-sm mb-3">Buka link di bawah ini pada perangkat lain untuk melihat data yang sama.</p>
+            <label for="syncLinkInput">Link Sinkronisasi Anda:</label>
+            <input type="text" id="syncLinkInput" readonly 
+                   style="cursor: copy; background-color: rgba(0,0,0,0.05); margin-top: 0.5rem;" 
+                   onclick="this.select(); document.execCommand('copy'); alert('Link disalin!');">
+        </div>
+
         <div class="summary mt-8 rounded-lg">
             <h2 class="text-xl font-semibold mb-3">Ringkasan Pengeluaran</h2>
             <div id="summaryContent" class="space-y-2">

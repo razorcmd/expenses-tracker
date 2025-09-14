@@ -61,6 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
     const chartContainer = document.getElementById('chartContainer');
     const chartCanvas = document.getElementById('expenseChart');
+    const syncSection = document.getElementById('syncSection');
+    const syncLinkInput = document.getElementById('syncLinkInput');
 
     let userId = null;
     let detectedItems = [];
@@ -468,18 +470,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tampilkan pesan saat aplikasi pertama kali mencoba terhubung
     showApiMessage("Menghubungkan ke server...", "success");
 
-    // Lakukan sign-in secara anonim saat aplikasi dimuat
-    authInstance.signInAnonymously().catch((error) => {
-        console.error("Gagal melakukan autentikasi anonim:", error);
-        showApiMessage("Gagal terhubung. Pastikan metode 'Anonymous' aktif di Firebase.", "error");
-    });
+    // --- LOGIKA SINKRONISASI BARU ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const uidFromUrl = urlParams.get('uid');
 
-    // Listener untuk perubahan status autentikasi
-    authInstance.onAuthStateChanged((user) => {
-        if (user) {
-            hideApiMessage(); // Sembunyikan pesan "Menghubungkan..." jika berhasil
-            userId = user.uid;
-            setupRealtimeDataListener();
-        }
-    });
+    if (uidFromUrl) {
+        // Jika ada UID di URL, gunakan itu sebagai ID pengguna
+        console.log("UID ditemukan di URL:", uidFromUrl);
+        userId = uidFromUrl;
+        hideApiMessage();
+        setupRealtimeDataListener();
+        // Tampilkan juga link sinkronisasinya agar mudah di-copy lagi
+        syncLinkInput.value = window.location.href;
+        syncSection.classList.remove('hidden');
+    } else {
+        // Jika tidak ada UID di URL, lakukan login anonim seperti biasa
+        console.log("Tidak ada UID di URL, melakukan sign-in anonim...");
+        authInstance.signInAnonymously().catch((error) => {
+            console.error("Gagal melakukan autentikasi anonim:", error);
+            showApiMessage("Gagal terhubung. Pastikan metode 'Anonymous' aktif di Firebase.", "error");
+        });
+
+        // Listener untuk mendapatkan UID baru setelah login berhasil
+        authInstance.onAuthStateChanged((user) => {
+            if (user && !userId) { // Pastikan hanya dijalankan sekali
+                hideApiMessage();
+                userId = user.uid;
+                console.log("Berhasil login anonim, UID baru:", userId);
+                const syncUrl = `${window.location.origin}${window.location.pathname}?uid=${userId}`;
+                syncLinkInput.value = syncUrl;
+                syncSection.classList.remove('hidden');
+                setupRealtimeDataListener();
+            }
+        });
+    }
 });
