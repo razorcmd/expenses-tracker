@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chartCanvas = document.getElementById('expenseChart');
     const syncSection = document.getElementById('syncSection');
     const syncLinkInput = document.getElementById('syncLinkInput');
+    const preloader = document.getElementById('preloader');
 
     let userId = null;
     let detectedItems = [];
@@ -505,12 +506,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const hidePreloader = () => {
+        if (preloader) {
+            preloader.style.opacity = '0';
+            preloader.style.visibility = 'hidden';
+        }
+    };
+
     const initializeAppWithUser = (uid) => {
         userId = uid;
         // Simpan UID ke localStorage agar diingat saat PWA dibuka
         localStorage.setItem('expenseTrackerUid', uid);
         
         hideApiMessage();
+        hidePreloader(); // Sembunyikan preloader saat aplikasi siap
         setupRealtimeDataListener();
         
         // Perbarui dan tampilkan UI sinkronisasi

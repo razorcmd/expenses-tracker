@@ -320,3 +320,29 @@ input:focus, select:focus {
         transform: rotate(360deg);
     }
 }
+
+/* Gaya untuk Preloader Halaman Awal */
+#preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--text-color); /* Warna gelap yang profesional */
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.7s ease, visibility 0.7s ease;
+    visibility: visible;
+    opacity: 1;
+}
+
+.preloader-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(235, 217, 206, 0.3); /* Warna terang transparan */
+    border-top-color: var(--bg-color); /* Warna terang utama */
+    border-radius: 50%;
+    animation: spin 1.2s linear infinite;
+}
