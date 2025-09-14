@@ -238,49 +238,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Logika untuk menganalisis pengeluaran dengan Gemini API
+    // --- FUNGSI BARU: Menganalisis dan Menampilkan Chart ---
     analyzeBtn.addEventListener('click', async () => {
         if (!userId) {
-            showApiMessage("Mohon tunggu, autentikasi sedang berlangsung...", "error");
+            showMessage("Mohon tunggu, autentikasi sedang berlangsung...", "error");
             return;
         }
+
+        showLoader();
+        hideApiMessage();
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const expensesCollectionRef = db.collection(`artifacts/${appId}/users/${userId}/expenses`);
-        const snapshot = await expensesCollectionRef.orderBy('tanggal', 'desc').get();
-        const expenses = [];
-        snapshot.forEach((doc) => expenses.push(doc.data()));
-
-        if (expenses.length === 0) {
-            showApiMessage("Tidak ada data pengeluaran untuk dianalisis.", "error");
-            return;
-        }
-
-        hideApiMessage();
-        showLoader();
-
-        const prompt = `Analisis data pengeluaran harian berikut dan berikan ringkasan dalam satu paragraf. Soroti tren, pengeluaran terbesar, dan total pengeluaran mingguan/bulanan. Data dalam format JSON: ${JSON.stringify(expenses)}`;
-
-        const payload = {
-            contents: [{ parts: [{ text: prompt }] }],
-            systemInstruction: {
-                parts: [{ text: "Anda adalah analis keuangan yang membantu orang memahami kebiasaan belanja mereka. Berikan ringkasan yang ringkas dan mudah dipahami." }]
-            },
-        };
 
         try {
-            const response = await fetch(geminiProxyUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
+            const snapshot = await expensesCollectionRef.get();
+            if (snapshot.empty) {
+                showMessage("Tidak ada data pengeluaran untuk dianalisis.", "error");
+                chartContainer.classList.add('hidden'); // Sembunyikan jika tidak ada data
+                return;
+            }
+
+            const categoryTotals = {};
+            snapshot.forEach(doc => {
+                const expense = doc.data();
+                const category = expense.kategori || 'Lain-lain';
+                if (!categoryTotals[category]) {
+                    categoryTotals[category] = 0;
+                }
+                categoryTotals[category] += expense.jumlah;
             });
-            const result = await response.json();
-            const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, gagal mendapatkan analisis. Coba lagi nanti.";
-            
-            showApiMessage(text, "success");
+
+            const labels = Object.keys(categoryTotals);
+            const data = Object.values(categoryTotals);
+
+            // Hancurkan chart lama jika ada, untuk mencegah bug rendering
+            if (expenseChartInstance) {
+                expenseChartInstance.destroy();
+            }
+
+            chartContainer.classList.remove('hidden');
+
+            expenseChartInstance = new Chart(chartCanvas, {
+                type: 'doughnut', // Tipe chart: doughnut, pie, bar, etc.
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pengeluaran per Kategori',
+                        data: data,
+                        backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#C9CBCF'],
+                        hoverOffset: 4
+                    }]
+                }
+            });
         } catch (error) {
-            showApiMessage("Terjadi kesalahan saat menghubungi API.", "error");
-            console.error(error);
+            showMessage("Gagal mengambil data untuk analisis.", "error");
+            console.error("Error generating chart:", error);
         } finally {
             hideLoader();
         }
