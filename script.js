@@ -632,7 +632,7 @@ Berikan ringkasan yang mencakup:
 3. Tebakan tipe data untuk setiap kolom (misal: Numerik, Teks, Tanggal).
 4. Satu paragraf singkat yang menjelaskan kemungkinan isi dari dataset ini.
 
-Gunakan format yang jelas dan mudah dibaca. Mulai jawaban Anda langsung dengan ringkasan, tanpa basa-basi.`;
+Gunakan format **Markdown** yang jelas dan modern. Gunakan heading (contoh: '### Ringkasan'), list, dan tebalkan (bold) bagian-bagian penting. Jika memungkinkan, buat tabel untuk daftar kolom dan tipe datanya. Mulai jawaban Anda langsung dengan ringkasan, tanpa basa-basi.`;
 
                 try {
                     const response = await fetch(geminiProxyUrl, {
@@ -641,8 +641,12 @@ Gunakan format yang jelas dan mudah dibaca. Mulai jawaban Anda langsung dengan r
                         body: JSON.stringify({ prompt: summaryPrompt })
                     });
                     const result = await response.json();
-                    const summaryText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, gagal mendapatkan ringkasan data. Coba lagi.";
-                    dataSummaryContent.textContent = summaryText;
+                    const summaryText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, gagal mendapatkan ringkasan data. Coba lagi.";                    
+                    if (typeof marked !== 'undefined') {
+                        dataSummaryContent.innerHTML = marked.parse(summaryText);
+                    } else {
+                        dataSummaryContent.textContent = summaryText; // Fallback jika marked.js gagal dimuat
+                    }
                 } catch (error) {
                     // Tangkap error dari fetch atau parsing JSON
                     let errorMessage = "Terjadi kesalahan saat menghubungi server AI untuk ringkasan. Silakan coba lagi nanti.";
@@ -697,7 +701,7 @@ Tugas Anda:
 2. Berikan jawaban yang jelas, terstruktur, dan mudah dipahami.
 3. Jika diminta melakukan regresi, sertakan ringkasan model, koefisien, dan interpretasi hasilnya.
 4. Jika diminta statistik deskriptif, berikan tabel yang rapi.
-5. Mulai jawaban Anda langsung dengan hasil analisis, tanpa basa-basi pembukaan.`;
+5. Gunakan format **Markdown** untuk jawaban Anda (heading, list, tabel, bold). Mulai jawaban Anda langsung dengan hasil analisis, tanpa basa-basi pembukaan.`;
 
         try {
             const response = await fetch(geminiProxyUrl, {
@@ -706,8 +710,12 @@ Tugas Anda:
                 body: JSON.stringify({ prompt: fullPrompt })
             });
             const result = await response.json();
-            const analysisText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, gagal mendapatkan hasil analisis. Coba lagi.";
-            analysisResultContent.textContent = analysisText;
+            const analysisText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, gagal mendapatkan hasil analisis. Coba lagi.";            
+            if (typeof marked !== 'undefined') {
+                analysisResultContent.innerHTML = marked.parse(analysisText);
+            } else {
+                analysisResultContent.textContent = analysisText; // Fallback
+            }
         } catch (error) {
             // Tangkap error dari fetch atau parsing JSON
             let errorMessage = "Terjadi kesalahan saat menghubungi server AI. Silakan coba lagi nanti.";

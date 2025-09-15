@@ -379,12 +379,44 @@ textarea {
 
 #analysisResultContent,
 #dataSummaryContent {
-    background-color: rgba(0,0,0,0.05);
-    padding: 1rem;
-    border-radius: 8px;
-    white-space: pre-wrap; /* Agar teks hasil bisa wrap */
-    word-wrap: break-word;
-    font-family: 'Roboto Mono', monospace;
+    /* Hapus gaya lama untuk <pre> dan ganti dengan gaya untuk konten dinamis */
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
+/* Gaya untuk elemen yang di-generate oleh Markdown */
+#analysisResultContent h3,
+#dataSummaryContent h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary-hover);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.25rem;
+}
+
+#analysisResultContent ul,
+#dataSummaryContent ul {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+#analysisResultContent table,
+#dataSummaryContent table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+#analysisResultContent th,
+#dataSummaryContent th,
+#analysisResultContent td,
+#dataSummaryContent td {
+    border: 1px solid var(--glass-border);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
 }
 
 /* Gaya untuk Preloader Halaman Awal */
