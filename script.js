@@ -81,6 +81,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataSummaryContainer = document.getElementById('dataSummaryContainer');
     const dataSummaryLoader = document.getElementById('dataSummaryLoader');
     const dataSummaryContent = document.getElementById('dataSummaryContent');
+    const suggestedAnalysisContainer = document.getElementById('suggestedAnalysisContainer');
+    const suggestedAnalysisButtons = document.getElementById('suggestedAnalysisButtons');
+
+    // ---- Elemen Halaman Panduan Analisis ----
+    const analysisGuidePage = document.getElementById('analysis-guide-page');
+    const backToAnalyzerBtn = document.getElementById('backToAnalyzerBtn');
+    const guideTitle = document.getElementById('guideTitle');
+    const guideLoader = document.getElementById('guideLoader');
+    const guideContent = document.getElementById('guideContent');
 
     let userId = null;
     let detectedItems = [];
@@ -595,6 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = event.target.files[0];
         if (!file) {
             dataSummaryContainer.classList.add('hidden');
+            suggestedAnalysisContainer.classList.add('hidden');
             parsedCsvData = null;
             return;
         }
@@ -602,6 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dataSummaryContainer.classList.remove('hidden');
         dataSummaryLoader.classList.remove('hidden');
         dataSummaryContent.textContent = '';
+        suggestedAnalysisContainer.classList.add('hidden'); // Sembunyikan saran saat loading
 
         Papa.parse(file, {
             header: true,
@@ -647,6 +658,10 @@ Gunakan format **Markdown** yang jelas dan modern. Gunakan heading (contoh: '###
                     } else {
                         dataSummaryContent.textContent = summaryText; // Fallback jika marked.js gagal dimuat
                     }
+
+                    // Tampilkan tombol saran setelah ringkasan berhasil dimuat
+                    renderSuggestionButtons(results.meta.fields);
+                    suggestedAnalysisContainer.classList.remove('hidden');
                 } catch (error) {
                     // Tangkap error dari fetch atau parsing JSON
                     let errorMessage = "Terjadi kesalahan saat menghubungi server AI untuk ringkasan. Silakan coba lagi nanti.";
@@ -666,6 +681,79 @@ Gunakan format **Markdown** yang jelas dan modern. Gunakan heading (contoh: '###
                 parsedCsvData = null;
             }
         });
+    });
+
+    // Fungsi baru untuk membuat tombol saran analisis
+    const renderSuggestionButtons = (columns) => {
+        suggestedAnalysisButtons.innerHTML = ''; // Kosongkan tombol lama
+
+        const analysisCategories = [
+            { name: 'Analisis Dasar', methods: ['Statistik Deskriptif', 'Analisis Korelasi'] },
+            { name: 'Model Regresi', methods: ['Regresi Linear (OLS)', 'Generalized Linear Models (GLM)', 'Lasso', 'Choice Models (Logit/Probit)'] },
+            { name: 'Time Series', methods: ['ARIMA', 'ARCH/GARCH', 'VAR', 'VEC'] },
+            { name: 'Uji Perbandingan Grup', methods: ['ANOVA', 'MANOVA'] },
+            { name: 'Pendekatan Lain', methods: ['Analisis Bayesian', 'Survival Analysis', 'Panel Data'] }
+        ];
+
+        analysisCategories.forEach(category => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-suggestion';
+            btn.textContent = category.name;
+            btn.addEventListener('click', () => {
+                showAnalysisGuide(category.name, category.methods);
+            });
+            suggestedAnalysisButtons.appendChild(btn);
+        });
+    };
+
+    // Fungsi baru untuk menampilkan halaman panduan analisis
+    const showAnalysisGuide = async (categoryName, methods) => {
+        dataAnalyzerPage.classList.add('hidden');
+        analysisGuidePage.classList.remove('hidden');
+
+        guideTitle.textContent = `Panduan: ${categoryName}`;
+        guideContent.innerHTML = '';
+        guideLoader.classList.remove('hidden');
+
+        const guidePrompt = `
+Anda adalah seorang profesor statistika dan ekonometrika yang sangat ahli.
+Jelaskan metode-metode berikut dalam kategori "${categoryName}".
+Metode yang harus dijelaskan: ${methods.join(', ')}.
+
+Untuk setiap metode, berikan penjelasan yang terstruktur dengan format Markdown:
+1.  **Judul Metode**: Gunakan heading level 4 (#### Nama Metode).
+2.  **Tentang Metode**: Jelaskan secara singkat apa itu metode tersebut dalam 1-2 kalimat.
+3.  **Tujuan & Fungsi**: Jelaskan kapan dan untuk apa metode ini digunakan.
+4.  **Kebutuhan Data**: Jelaskan jenis data yang diperlukan (misalnya, data time series, data cross-section, variabel dependen harus kontinu, dll.). Berikan contoh sederhana format data yang dibutuhkan dalam bentuk tabel Markdown.
+
+Pastikan penjelasan mudah dipahami oleh seseorang yang baru belajar analisis data. Mulai langsung dengan metode pertama.`;
+
+        try {
+            const response = await fetch(geminiProxyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: guidePrompt })
+            });
+            const result = await response.json();
+            const guideText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Gagal memuat panduan. Coba lagi.";
+            
+            if (typeof marked !== 'undefined') {
+                guideContent.innerHTML = marked.parse(guideText);
+            } else {
+                guideContent.textContent = guideText;
+            }
+        } catch (error) {
+            guideContent.innerHTML = `<p class="message error">Gagal memuat panduan. Periksa koneksi Anda dan coba lagi.</p>`;
+            console.error("Error fetching guide:", error);
+        } finally {
+            guideLoader.classList.add('hidden');
+        }
+    };
+
+    // Event listener untuk tombol kembali dari halaman panduan
+    backToAnalyzerBtn.addEventListener('click', () => {
+        analysisGuidePage.classList.add('hidden');
+        dataAnalyzerPage.classList.remove('hidden');
     });
 
     // Langkah 2: Jalankan analisis mendalam berdasarkan prompt pengguna

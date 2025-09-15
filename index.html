@@ -120,8 +120,13 @@
                 <div id="dataSummaryContent"></div>
             </div>
 
+            <div id="suggestedAnalysisContainer" class="summary mt-4 hidden">
+                <h2 class="text-xl font-semibold mb-3">Saran Analisis Cepat</h2>
+                <div id="suggestedAnalysisButtons" class="button-grid"></div>
+            </div>
+
             <div class="form-group">
-                <label for="analysisPrompt">2. Tulis Perintah Analisis Anda</label>
+                <label for="analysisPrompt">2. Tulis Perintah Analisis (atau pilih saran di atas)</label>
                 <textarea id="analysisPrompt" rows="4" placeholder="Contoh: Lakukan analisis regresi linear untuk memprediksi 'penjualan' berdasarkan 'iklan'. Berikan juga ringkasan statistik deskriptif untuk semua kolom."></textarea>
             </div>
             <button id="runAnalysisBtn" class="btn-submit">Jalankan Analisis</button>
@@ -131,6 +136,16 @@
                 <div id="analysisLoader" class="loader hidden"></div>
                 <div id="analysisResultContent"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- Kontainer untuk Panduan Analisis Detail -->
+    <div id="analysis-guide-page" class="page-container hidden">
+        <div class="container">
+            <button id="backToAnalyzerBtn" class="btn-back">← Kembali ke Analisis</button>
+            <h1 id="guideTitle" class="text-3xl font-bold text-center mb-6">Panduan Analisis</h1>
+            <div id="guideLoader" class="loader hidden"></div>
+            <div id="guideContent"></div>
         </div>
     </div>
 
