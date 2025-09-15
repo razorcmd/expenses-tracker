@@ -614,22 +614,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rowCount = parsedCsvData.length;
 
                 const summaryPrompt = `
-Anda adalah asisten analis data. Diberikan metadata dan beberapa baris sampel dari sebuah file CSV.
+Anda adalah asisten analis data. Diberikan metadata dari sebuah file CSV.
 Tugas Anda adalah memberikan ringkasan singkat tentang data tersebut.
 
 Informasi Data:
 - Jumlah baris data: ${rowCount}
 - Nama-nama kolom: ${headers.join(', ')}
-- 5 baris pertama sebagai sampel:
-${JSON.stringify(sampleData, null, 2)}
 
 Berikan ringkasan yang mencakup:
 1. Konfirmasi jumlah baris dan kolom.
 2. Daftar nama kolom.
-3. Tebakan tipe data untuk setiap kolom (misal: Numerik, Teks, Tanggal).
-4. Satu paragraf singkat yang menjelaskan kemungkinan isi dari dataset ini.
+3. Tebakan tipe data untuk setiap kolom (misal: Numerik, Teks, Tanggal) berdasarkan namanya.
+4. Satu paragraf singkat yang menjelaskan kemungkinan isi dari dataset ini berdasarkan nama-nama kolomnya.
 
-Gunakan format **Markdown** yang jelas dan modern. Gunakan heading (contoh: '### Ringkasan'), list, dan tebalkan (bold) bagian-bagian penting. Jika memungkinkan, buat tabel untuk daftar kolom dan tipe datanya. Mulai jawaban Anda langsung dengan ringkasan, tanpa basa-basi.`;
+Gunakan format **Markdown** yang jelas dan modern. Gunakan heading (contoh: '### Ringkasan'), list, dan tebalkan (bold) bagian-bagian penting. Buat tabel untuk daftar kolom dan tebakan tipe datanya. Mulai jawaban Anda langsung dengan ringkasan, tanpa basa-basi.`;
 
                 try {
                     const summaryText = await callGeminiAPI(summaryPrompt);
