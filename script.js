@@ -76,12 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const runAnalysisBtn = document.getElementById('runAnalysisBtn');
     const analysisResultContainer = document.getElementById('analysisResultContainer');
     const analysisLoader = document.getElementById('analysisLoader');
+    const analysisResultTitle = document.getElementById('analysisResultTitle');
     const analysisResultContent = document.getElementById('analysisResultContent');
     const dataSummaryContainer = document.getElementById('dataSummaryContainer');
     const dataSummaryLoader = document.getElementById('dataSummaryLoader');
     const dataSummaryContent = document.getElementById('dataSummaryContent');
     const suggestedAnalysisContainer = document.getElementById('suggestedAnalysisContainer');
     const suggestedAnalysisButtons = document.getElementById('suggestedAnalysisButtons');
+    const executePlanBtn = document.getElementById('executePlanBtn');
 
     let userId = null;
     let detectedItems = [];
@@ -682,6 +684,28 @@ Gunakan format **Markdown** yang jelas dan modern. Gunakan heading (contoh: '###
         });
     };
 
+    // ---- Helper Functions for Local Statistics Calculation ----
+    const getColumn = (data, columnName) => data.map(row => row[columnName]).filter(val => typeof val === 'number' && !isNaN(val));
+
+    const calculateMean = (arr) => arr.length === 0 ? 0 : arr.reduce((a, b) => a + b, 0) / arr.length;
+
+    const calculateStdDev = (arr) => {
+        if (arr.length === 0) return 0;
+        const mean = calculateMean(arr);
+        const variance = arr.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / arr.length;
+        return Math.sqrt(variance);
+    };
+
+    const calculateMedian = (arr) => {
+        if (arr.length === 0) return 0;
+        const sorted = [...arr].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    };
+
+    // Variabel global untuk menyimpan rencana analisis dari AI
+    let analysisPlan = null;
+
     // Langkah 2: Jalankan analisis mendalam berdasarkan prompt pengguna
     runAnalysisBtn.addEventListener('click', async () => {
         const userPrompt = analysisPrompt.value.trim();
@@ -697,36 +721,133 @@ Gunakan format **Markdown** yang jelas dan modern. Gunakan heading (contoh: '###
 
         analysisResultContainer.classList.remove('hidden');
         analysisLoader.classList.remove('hidden');
-        analysisResultContent.textContent = '';
+        analysisResultContent.innerHTML = '';
+        executePlanBtn.classList.add('hidden');
+        analysisResultTitle.textContent = "Membuat Rencana Analisis...";
 
-        const dataString = JSON.stringify(parsedCsvData, null, 2);
+        const planPrompt = `
+Anda adalah seorang perencana analisis data. Diberikan nama-nama kolom dari sebuah dataset dan permintaan dari pengguna.
+Tugas Anda adalah membuat rencana analisis dan menentukan statistik apa yang perlu dihitung dari dataset LENGKAP untuk menjalankan rencana tersebut.
 
-        const fullPrompt = `
-Anda adalah seorang analis data profesional. Diberikan data dalam format JSON berikut dan sebuah permintaan dari pengguna.
+Nama Kolom: ${Object.keys(parsedCsvData[0] || {}).join(', ')}
+Permintaan Pengguna: "${userPrompt}"
 
-Data:
-${dataString}
+Buatlah respons dalam format JSON yang valid, dengan dua kunci utama:
+1. "plan": String yang berisi rencana analisis langkah-demi-langkah dalam format Markdown. Jelaskan apa yang akan Anda analisis dan mengapa.
+2. "required_stats": Sebuah array dari objek, di mana setiap objek mendefinisikan satu statistik yang Anda butuhkan. Gunakan format {"column": "nama_kolom", "metric": "jenis_metrik"}.
+   Metrik yang valid adalah: 'mean', 'median', 'stddev' (standar deviasi), 'sum', 'count', 'min', 'max'.
 
-Permintaan Pengguna:
-"${userPrompt}"
+Contoh respons JSON:
+{
+  "plan": "### Rencana Analisis Korelasi\\n1. Saya akan menghitung korelasi antara 'penjualan' dan 'iklan'.\\n2. Saya akan menginterpretasikan hasilnya untuk melihat kekuatan hubungan.",
+  "required_stats": [
+    {"column": "penjualan", "metric": "mean"},
+    {"column": "iklan", "metric": "mean"}
+  ]
+}
 
-Tugas Anda:
-1. Lakukan analisis sesuai permintaan pengguna.
-2. Berikan jawaban yang jelas, terstruktur, dan mudah dipahami.
-3. Jika diminta melakukan regresi, sertakan ringkasan model, koefisien, dan interpretasi hasilnya.
-4. Jika diminta statistik deskriptif, berikan tabel yang rapi.
-5. Gunakan format **Markdown** untuk jawaban Anda (heading, list, tabel, bold). Mulai jawaban Anda langsung dengan hasil analisis, tanpa basa-basi pembukaan.`;
+Hanya kembalikan objek JSON, tanpa teks atau penjelasan lain.`;
 
         try {
-            const analysisText = await callGeminiAPI(fullPrompt);
-            if (typeof marked !== 'undefined') {
-                analysisResultContent.innerHTML = marked.parse(analysisText);
+            const jsonString = await callGeminiAPI(planPrompt);
+            const cleanedJsonString = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
+            analysisPlan = JSON.parse(cleanedJsonString);
+
+            if (analysisPlan.plan && analysisPlan.required_stats) {
+                analysisResultTitle.textContent = "Rencana Analisis Dibuat";
+                analysisResultContent.innerHTML = marked.parse(analysisPlan.plan);
+                executePlanBtn.classList.remove('hidden');
+                analysisResultContainer.scrollIntoView({ behavior: 'smooth' });
             } else {
-                analysisResultContent.textContent = analysisText; // Fallback
+                throw new Error("Respons AI tidak memiliki format JSON yang diharapkan (kurang 'plan' atau 'required_stats').");
             }
         } catch (error) {
-            analysisResultContent.innerHTML = `<p class="message error">Gagal menjalankan analisis: ${error.message}</p>`;
-            console.error("Error running analysis:", error);
+            analysisResultContent.innerHTML = `<p class="message error">Gagal membuat rencana analisis: ${error.message}</p>`;
+            console.error("Error generating analysis plan:", error);
+        } finally {
+            analysisLoader.classList.add('hidden');
+        }
+    });
+
+    executePlanBtn.addEventListener('click', async () => {
+        if (!analysisPlan || !parsedCsvData) {
+            alert("Rencana analisis tidak ditemukan atau data tidak ada.");
+            return;
+        }
+
+        analysisLoader.classList.remove('hidden');
+        executePlanBtn.classList.add('hidden');
+        analysisResultTitle.textContent = "Menjalankan Analisis Akhir...";
+
+        try {
+            // Step 1: Calculate stats locally from the FULL dataset
+            const calculatedStats = {};
+            for (const stat of analysisPlan.required_stats) {
+                const { column, metric } = stat;
+                const key = `${metric}_of_${column}`;
+                const columnData = getColumn(parsedCsvData, column);
+
+                if (columnData.length === 0 && metric !== 'count') {
+                    calculatedStats[key] = 'N/A (kolom bukan numerik atau kosong)';
+                    continue;
+                }
+
+                switch (metric) {
+                    case 'mean':
+                        calculatedStats[key] = calculateMean(columnData);
+                        break;
+                    case 'median':
+                        calculatedStats[key] = calculateMedian(columnData);
+                        break;
+                    case 'stddev':
+                        calculatedStats[key] = calculateStdDev(columnData);
+                        break;
+                    case 'sum':
+                        calculatedStats[key] = columnData.reduce((a, b) => a + b, 0);
+                        break;
+                    case 'count':
+                        // 'count' bisa merujuk ke total baris, bukan hanya numerik
+                        calculatedStats[key] = parsedCsvData.length;
+                        break;
+                    case 'min':
+                        calculatedStats[key] = Math.min(...columnData);
+                        break;
+                    case 'max':
+                        calculatedStats[key] = Math.max(...columnData);
+                        break;
+                    default:
+                        calculatedStats[key] = `Metrik tidak dikenal: ${metric}`;
+                }
+            }
+
+            // Step 2: Build final prompt with the calculated stats
+            const finalPrompt = `
+Anda adalah seorang analis data ahli yang akan menulis laporan akhir.
+Saya telah melakukan pra-perhitungan statistik dari dataset LENGKAP berdasarkan rencana Anda.
+
+Permintaan Asli Pengguna:
+"${analysisPrompt.value.trim()}"
+
+Rencana Analisis Anda:
+${analysisPlan.plan}
+
+Statistik yang Dihitung dari Dataset Lengkap:
+${JSON.stringify(calculatedStats, null, 2)}
+
+Tugas Anda:
+Gunakan SEMUA informasi di atas untuk menulis laporan analisis akhir yang komprehensif.
+Jawab permintaan pengguna secara langsung, gunakan rencana Anda sebagai panduan, dan dukung kesimpulan Anda dengan statistik yang telah dihitung.
+Format jawaban Anda dalam Markdown yang rapi dan profesional.`;
+
+            // Step 3: Call AI and render the final report
+            const finalText = await callGeminiAPI(finalPrompt);
+            analysisResultTitle.textContent = "Laporan Analisis Akhir";
+            analysisResultContent.innerHTML = marked.parse(finalText);
+            analysisResultContainer.scrollIntoView({ behavior: 'smooth' });
+
+        } catch (error) {
+            analysisResultContent.innerHTML = `<p class="message error">Gagal mengeksekusi rencana: ${error.message}</p>`;
+            console.error("Error executing plan:", error);
         } finally {
             analysisLoader.classList.add('hidden');
         }

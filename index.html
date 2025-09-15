@@ -128,12 +128,13 @@
                 <label for="analysisPrompt">2. Tulis Perintah Analisis (atau pilih saran di atas)</label>
                 <textarea id="analysisPrompt" rows="4" placeholder="Contoh: Lakukan analisis regresi linear untuk memprediksi 'penjualan' berdasarkan 'iklan'. Berikan juga ringkasan statistik deskriptif untuk semua kolom."></textarea>
             </div>
-            <button id="runAnalysisBtn" class="btn-submit">Jalankan Analisis</button>
+            <button id="runAnalysisBtn" class="btn-submit">Buat Rencana Analisis</button>
 
             <div id="analysisResultContainer" class="summary mt-6 hidden">
-                <h2 class="text-xl font-semibold mb-3">Hasil Analisis AI</h2>
+                <h2 id="analysisResultTitle" class="text-xl font-semibold mb-3">Hasil Analisis AI</h2>
                 <div id="analysisLoader" class="loader hidden"></div>
                 <div id="analysisResultContent"></div>
+                <button id="executePlanBtn" class="btn-submit mt-4 hidden">Jalankan Rencana & Dapatkan Laporan Akhir</button>
             </div>
         </div>
     </div>
