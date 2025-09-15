@@ -254,32 +254,46 @@ document.addEventListener('DOMContentLoaded', () => {
      * @throws {Error} - Melemparkan error jika panggilan API gagal.
      */
     const callGeminiAPI = async (prompt) => {
-        const response = await fetch(geminiProxyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
-        });
-
-        if (!response.ok) {
-            // Penanganan khusus untuk error rate limit (kuota habis)
-            if (response.status === 429) {
-                throw new Error("Anda telah mencapai batas penggunaan API untuk saat ini. Silakan coba lagi setelah beberapa saat.");
+        const maxRetries = 3;
+        const delay = 2000; // 2 detik
+    
+        for (let i = 0; i < maxRetries; i++) {
+            const response = await fetch(geminiProxyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            });
+    
+            // Jika sukses, langsung kembalikan hasil
+            if (response.ok) {
+                const result = await response.json();
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) {
+                    if (result?.candidates?.[0]?.finishReason === 'SAFETY') {
+                        throw new Error("Respons diblokir karena alasan keamanan. Coba dengan deskripsi yang berbeda.");
+                    }
+                    throw new Error("Gagal mendapatkan konten teks dari respons AI.");
+                }
+                return text;
             }
-
-            let errorBody = `Status: ${response.status}`;
-            try {
-                const errorJson = await response.json();
-                errorBody += ` - Pesan: ${errorJson.error?.message || JSON.stringify(errorJson)}`;
-            } catch (e) { /* Abaikan jika body bukan JSON */ }
-            throw new Error(`Server AI merespons dengan error. ${errorBody}`);
+    
+            // Jika error bisa di-retry (server sibuk atau kuota habis)
+            if (response.status === 429 || response.status === 503) {
+                if (i === maxRetries - 1) { // Jika ini percobaan terakhir
+                    const errorMsg = response.status === 429 
+                        ? "Anda telah mencapai batas penggunaan API. Silakan coba lagi nanti."
+                        : "Server AI sedang sibuk. Silakan coba lagi nanti.";
+                    throw new Error(errorMsg);
+                }
+                console.log(`Server sibuk (status ${response.status}), mencoba lagi dalam ${delay / 1000} detik...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            } else { // Untuk error lain yang tidak bisa di-retry
+                let errorBody = `Status: ${response.status}`;
+                try { const errorJson = await response.json(); errorBody += ` - Pesan: ${errorJson.error?.message || JSON.stringify(errorJson)}`; } catch (e) { /* Abaikan */ }
+                throw new Error(`Server AI merespons dengan error: ${errorBody}`);
+            }
         }
-
-        const result = await response.json();
-        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!text) {
-            throw new Error("Gagal mendapatkan konten teks dari respons AI.");
-        }
-        return text;
+        throw new Error("Gagal menghubungi server AI setelah beberapa kali percobaan.");
     };
     
     // Logika untuk menyimpan pengeluaran tunggal
