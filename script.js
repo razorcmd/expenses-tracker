@@ -65,9 +65,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncLinkInput = document.getElementById('syncLinkInput');
     const preloader = document.getElementById('preloader');
 
+    // ---- Elemen Navigasi dan Halaman Baru ----
+    const navExpenseTracker = document.getElementById('nav-expense-tracker');
+    const navDataAnalyzer = document.getElementById('nav-data-analyzer');
+    const expenseTrackerPage = document.getElementById('expense-tracker-page');
+    const dataAnalyzerPage = document.getElementById('data-analyzer-page');
+
+    // ---- Elemen Halaman Analis Data ----
+    const csvFileInput = document.getElementById('csvFileInput');
+    const analysisPrompt = document.getElementById('analysisPrompt');
+    const runAnalysisBtn = document.getElementById('runAnalysisBtn');
+    const analysisResultContainer = document.getElementById('analysisResultContainer');
+    const analysisLoader = document.getElementById('analysisLoader');
+    const analysisResultContent = document.getElementById('analysisResultContent');
+    const dataSummaryContainer = document.getElementById('dataSummaryContainer');
+    const dataSummaryLoader = document.getElementById('dataSummaryLoader');
+    const dataSummaryContent = document.getElementById('dataSummaryContent');
+
     let userId = null;
     let detectedItems = [];
     let expenseChartInstance = null; // Untuk menyimpan instance chart
+    let parsedCsvData = null; // Untuk menyimpan data CSV yang sudah di-parse
 
     // --- URL Proxy Aman ke Gemini API ---
     // Ini adalah path ke serverless function kita di Netlify.
@@ -552,4 +570,154 @@ document.addEventListener('DOMContentLoaded', () => {
                 showApiMessage("Gagal terhubung. Pastikan metode 'Anonymous' aktif di Firebase.", "error");
             });
     }
+
+    // ---- LOGIKA UNTUK NAVIGASI ANTAR HALAMAN ----
+    navExpenseTracker.addEventListener('click', (e) => {
+        e.preventDefault();
+        expenseTrackerPage.classList.remove('hidden');
+        dataAnalyzerPage.classList.add('hidden');
+        navExpenseTracker.classList.add('active');
+        navDataAnalyzer.classList.remove('active');
+    });
+
+    navDataAnalyzer.addEventListener('click', (e) => {
+        e.preventDefault();
+        expenseTrackerPage.classList.add('hidden');
+        dataAnalyzerPage.classList.remove('hidden');
+        navExpenseTracker.classList.remove('active');
+        navDataAnalyzer.classList.add('active');
+    });
+
+    // ---- LOGIKA UNTUK ASISTEN ANALIS DATA ----
+
+    // Langkah 1: Saat file diunggah, buat ringkasan data otomatis
+    csvFileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+            dataSummaryContainer.classList.add('hidden');
+            parsedCsvData = null;
+            return;
+        }
+
+        dataSummaryContainer.classList.remove('hidden');
+        dataSummaryLoader.classList.remove('hidden');
+        dataSummaryContent.textContent = '';
+
+        Papa.parse(file, {
+            header: true,
+            dynamicTyping: true,
+            complete: async (results) => {
+                parsedCsvData = results.data;
+                if (parsedCsvData.length > 0 && Object.values(parsedCsvData[parsedCsvData.length - 1]).every(v => v === null || v === '')) {
+                    parsedCsvData.pop();
+                }
+
+                const headers = results.meta.fields;
+                const sampleData = parsedCsvData.slice(0, 5);
+                const rowCount = parsedCsvData.length;
+
+                const summaryPrompt = `
+Anda adalah asisten analis data. Diberikan metadata dan beberapa baris sampel dari sebuah file CSV.
+Tugas Anda adalah memberikan ringkasan singkat tentang data tersebut.
+
+Informasi Data:
+- Jumlah baris data: ${rowCount}
+- Nama-nama kolom: ${headers.join(', ')}
+- 5 baris pertama sebagai sampel:
+${JSON.stringify(sampleData, null, 2)}
+
+Berikan ringkasan yang mencakup:
+1. Konfirmasi jumlah baris dan kolom.
+2. Daftar nama kolom.
+3. Tebakan tipe data untuk setiap kolom (misal: Numerik, Teks, Tanggal).
+4. Satu paragraf singkat yang menjelaskan kemungkinan isi dari dataset ini.
+
+Gunakan format yang jelas dan mudah dibaca. Mulai jawaban Anda langsung dengan ringkasan, tanpa basa-basi.`;
+
+                try {
+                    const response = await fetch(geminiProxyUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: summaryPrompt })
+                    });
+                    const result = await response.json();
+                    const summaryText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, gagal mendapatkan ringkasan data. Coba lagi.";
+                    dataSummaryContent.textContent = summaryText;
+                } catch (error) {
+                    // Tangkap error dari fetch atau parsing JSON
+                    let errorMessage = "Terjadi kesalahan saat menghubungi server AI untuk ringkasan. Silakan coba lagi nanti.";
+                    if (error.message) {
+                        errorMessage = `Terjadi kesalahan: ${error.message}`;
+                    }
+                    dataSummaryContent.textContent = errorMessage;
+                    console.error("Error getting data summary:", error);
+                } finally {
+                    dataSummaryLoader.classList.add('hidden');
+                }
+            },
+            error: (error) => {
+                dataSummaryContent.textContent = `Gagal mem-parsing file CSV: ${error.message}`;
+                dataSummaryLoader.classList.add('hidden');
+                console.error("PapaParse Error:", error);
+                parsedCsvData = null;
+            }
+        });
+    });
+
+    // Langkah 2: Jalankan analisis mendalam berdasarkan prompt pengguna
+    runAnalysisBtn.addEventListener('click', async () => {
+        const userPrompt = analysisPrompt.value.trim();
+
+        if (!parsedCsvData || parsedCsvData.length === 0) {
+            alert("Silakan unggah file .csv yang valid terlebih dahulu.");
+            return;
+        }
+        if (!userPrompt) {
+            alert("Silakan tulis perintah analisis yang Anda inginkan.");
+            return;
+        }
+
+        analysisResultContainer.classList.remove('hidden');
+        analysisLoader.classList.remove('hidden');
+        analysisResultContent.textContent = '';
+
+        const dataString = JSON.stringify(parsedCsvData, null, 2);
+
+        const fullPrompt = `
+Anda adalah seorang analis data profesional. Diberikan data dalam format JSON berikut dan sebuah permintaan dari pengguna.
+
+Data:
+${dataString}
+
+Permintaan Pengguna:
+"${userPrompt}"
+
+Tugas Anda:
+1. Lakukan analisis sesuai permintaan pengguna.
+2. Berikan jawaban yang jelas, terstruktur, dan mudah dipahami.
+3. Jika diminta melakukan regresi, sertakan ringkasan model, koefisien, dan interpretasi hasilnya.
+4. Jika diminta statistik deskriptif, berikan tabel yang rapi.
+5. Mulai jawaban Anda langsung dengan hasil analisis, tanpa basa-basi pembukaan.`;
+
+        try {
+            const response = await fetch(geminiProxyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: fullPrompt })
+            });
+            const result = await response.json();
+            const analysisText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, gagal mendapatkan hasil analisis. Coba lagi.";
+            analysisResultContent.textContent = analysisText;
+        } catch (error) {
+            // Tangkap error dari fetch atau parsing JSON
+            let errorMessage = "Terjadi kesalahan saat menghubungi server AI. Silakan coba lagi nanti.";
+            if (error.message) {
+                errorMessage = `Terjadi kesalahan: ${error.message}`;
+            }
+            analysisResultContent.textContent = errorMessage;
+            console.error("Error running analysis:", error);
+        } finally {
+            analysisLoader.classList.add('hidden');
+        }
+    });
 });
