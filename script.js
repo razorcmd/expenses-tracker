@@ -268,6 +268,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (!response.ok) {
+            // Penanganan khusus untuk error rate limit (kuota habis)
+            if (response.status === 429) {
+                throw new Error("Anda telah mencapai batas penggunaan API untuk saat ini. Silakan coba lagi setelah beberapa saat.");
+            }
+
             let errorBody = `Status: ${response.status}`;
             try {
                 const errorJson = await response.json();
