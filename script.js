@@ -83,13 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestedAnalysisContainer = document.getElementById('suggestedAnalysisContainer');
     const suggestedAnalysisButtons = document.getElementById('suggestedAnalysisButtons');
 
-    // ---- Elemen Halaman Panduan Analisis ----
-    const analysisGuidePage = document.getElementById('analysis-guide-page');
-    const backToAnalyzerBtn = document.getElementById('backToAnalyzerBtn');
-    const guideTitle = document.getElementById('guideTitle');
-    const guideLoader = document.getElementById('guideLoader');
-    const guideContent = document.getElementById('guideContent');
-
     let userId = null;
     let detectedItems = [];
     let expenseChartInstance = null; // Untuk menyimpan instance chart
@@ -654,69 +647,28 @@ Gunakan format **Markdown** yang jelas dan modern. Gunakan heading (contoh: '###
     // Fungsi baru untuk membuat tombol saran analisis
     const renderSuggestionButtons = (columns) => {
         suggestedAnalysisButtons.innerHTML = ''; // Kosongkan tombol lama
+        const columnString = columns.join(', ');
 
-        const analysisCategories = [
-            { name: 'Analisis Dasar', methods: ['Statistik Deskriptif', 'Analisis Korelasi'] },
-            { name: 'Model Regresi', methods: ['Regresi Linear (OLS)', 'Generalized Linear Models (GLM)', 'Lasso', 'Choice Models (Logit/Probit)'] },
-            { name: 'Time Series', methods: ['ARIMA', 'ARCH/GARCH', 'VAR', 'VEC'] },
-            { name: 'Uji Perbandingan Grup', methods: ['ANOVA', 'MANOVA'] },
-            { name: 'Pendekatan Lain', methods: ['Analisis Bayesian', 'Survival Analysis', 'Panel Data'] }
+        const suggestions = [
+            { name: 'Statistik Deskriptif', prompt: `Berikan analisis statistik deskriptif lengkap untuk semua kolom numerik dalam data. Sertakan mean, median, standar deviasi, min, dan max untuk setiap kolom. Tampilkan hasilnya dalam format tabel Markdown.` },
+            { name: 'Analisis Korelasi', prompt: `Hitung dan tampilkan matriks korelasi untuk semua variabel numerik dalam data. Berikan interpretasi singkat tentang korelasi terkuat (positif dan negatif) yang Anda temukan.` },
+            { name: 'Regresi Linear', prompt: `Lakukan analisis regresi linear untuk mengidentifikasi hubungan antar variabel. Pilih satu variabel dependen yang paling masuk akal dan beberapa variabel independen dari kolom berikut: ${columnString}. Jelaskan modelnya, interpretasikan koefisien, dan berikan nilai R-squared.` },
+            { name: 'Identifikasi Outlier', prompt: `Analisis data untuk mengidentifikasi kemungkinan adanya outlier atau anomali di setiap kolom numerik. Jelaskan metode yang Anda gunakan (misalnya, Z-score atau Interquartile Range) dan sebutkan baris data mana yang berpotensi menjadi outlier.` },
+            { name: 'Analisis Time Series', prompt: `Jika ada kolom yang berhubungan dengan waktu, lakukan analisis time series dasar. Identifikasi tren dan musiman jika ada. Kolom yang tersedia: ${columnString}.` },
         ];
 
-        analysisCategories.forEach(category => {
+        suggestions.forEach(suggestion => {
             const btn = document.createElement('button');
             btn.className = 'btn-suggestion';
-            btn.textContent = category.name;
+            btn.textContent = suggestion.name;
             btn.addEventListener('click', () => {
-                showAnalysisGuide(category.name, category.methods);
+                analysisPrompt.value = suggestion.prompt;
+                analysisPrompt.focus(); // Pindahkan fokus ke textarea
+                analysisPrompt.scrollIntoView({ behavior: 'smooth', block: 'center' });
             });
             suggestedAnalysisButtons.appendChild(btn);
         });
     };
-
-    // Fungsi baru untuk menampilkan halaman panduan analisis
-    const showAnalysisGuide = async (categoryName, methods) => {
-        dataAnalyzerPage.classList.add('hidden');
-        analysisGuidePage.classList.remove('hidden');
-
-        guideTitle.textContent = `Panduan: ${categoryName}`;
-        guideContent.innerHTML = '';
-        guideLoader.classList.remove('hidden');
-
-        const guidePrompt = `
-Anda adalah seorang profesor statistika dan ekonometrika yang sangat ahli.
-Jelaskan metode-metode berikut dalam kategori "${categoryName}".
-Metode yang harus dijelaskan: ${methods.join(', ')}.
-
-Untuk setiap metode, berikan penjelasan yang terstruktur dengan format Markdown:
-1.  **Judul Metode**: Gunakan heading level 4 (#### Nama Metode).
-2.  **Tentang Metode**: Jelaskan secara singkat apa itu metode tersebut dalam 1-2 kalimat.
-3.  **Tujuan & Fungsi**: Jelaskan kapan dan untuk apa metode ini digunakan.
-4.  **Kebutuhan Data**: Jelaskan jenis data yang diperlukan (misalnya, data time series, data cross-section, variabel dependen harus kontinu, dll.). Berikan contoh sederhana format data yang dibutuhkan dalam bentuk tabel Markdown.
-
-Pastikan penjelasan mudah dipahami oleh seseorang yang baru belajar analisis data. Mulai langsung dengan metode pertama.`;
-
-        try {
-            const guideText = await callGeminiAPI(guidePrompt);
-            
-            if (typeof marked !== 'undefined') {
-                guideContent.innerHTML = marked.parse(guideText);
-            } else {
-                guideContent.textContent = guideText;
-            }
-        } catch (error) {
-            guideContent.innerHTML = `<p class="message error">Gagal memuat panduan: ${error.message}</p>`;
-            console.error("Error fetching guide:", error);
-        } finally {
-            guideLoader.classList.add('hidden');
-        }
-    };
-
-    // Event listener untuk tombol kembali dari halaman panduan
-    backToAnalyzerBtn.addEventListener('click', () => {
-        analysisGuidePage.classList.add('hidden');
-        dataAnalyzerPage.classList.remove('hidden');
-    });
 
     // Langkah 2: Jalankan analisis mendalam berdasarkan prompt pengguna
     runAnalysisBtn.addEventListener('click', async () => {
