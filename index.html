@@ -85,8 +85,7 @@
                 </div>
                 <label for="syncLinkInput">Link Sinkronisasi Anda:</label>
                 <input type="text" id="syncLinkInput" readonly 
-                       style="cursor: copy; background-color: rgba(0,0,0,0.05); margin-top: 0.5rem;" 
-                       onclick="this.select(); document.execCommand('copy'); alert('Link disalin!');">
+                       style="cursor: copy; background-color: rgba(0,0,0,0.05); margin-top: 0.5rem;">
             </div>
 
             <div class="summary mt-8 rounded-lg">
@@ -161,21 +160,6 @@
             <button id="cancelModalBtn" class="btn-api mt-4">Batalkan</button>
         </div>
     </div>
-    <script>
-      // PASTE KONFIGURASI FIREBASE ANDA DI SINI
-      // Ganti objek di bawah ini dengan konfigurasi yang Anda dapatkan dari Firebase Console
-      const firebaseConfigObject = {
-        apiKey: "AIzaSyD_33r5f_4M7aX0XuyhRIFGoyPESfjGnUI",
-        authDomain: "expenses-a36ff.firebaseapp.com",
-        projectId: "expenses-a36ff",
-        storageBucket: "expenses-a36ff.firebasestorage.app",
-        messagingSenderId: "306521276424",
-        appId: "1:306521276424:web:654020afbefbbd4d8311bd",
-        measurementId: "G-1NSLPX2568"
-      };
-      // Mengubah objek menjadi string JSON untuk digunakan di script.js
-      const __firebase_config = JSON.stringify(firebaseConfigObject);
-    </script>
     <script src="script.js" defer></script>
     <script>
         // --- PWA Service Worker Registration ---

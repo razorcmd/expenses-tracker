@@ -18,7 +18,7 @@
 body {
     font-family: 'Inter', sans-serif;
     margin: 0;
-    padding: 2rem 1rem; /* Memberi ruang di atas dan samping */
+    padding: 4rem 1rem 2rem 1rem; /* Padding atas untuk ruang di bawah nav bar */
     display: flex;
     justify-content: center;
     /* align-items: center; Dihapus agar konten mulai dari atas */

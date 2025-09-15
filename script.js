@@ -51,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageDiv = document.getElementById('message');
     const apiMessageDiv = document.getElementById('apiMessage');
     const analyzeBtn = document.getElementById('analyzeExpensesBtn');
-    const suggestBtn = document.getElementById('suggestCategoryBtn');
     const kategoriSelect = document.getElementById('kategori');
     const detectItemsBtn = document.getElementById('detectItemsBtn');
     const detectionModal = document.getElementById('detectionModal');
@@ -99,16 +98,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- URL Proxy Aman ke Gemini API ---
     // Ini adalah path ke serverless function kita di Netlify.
     const geminiProxyUrl = "/.netlify/functions/gemini-proxy";
+    const FIREBASE_APP_ID = 'default-app-id'; // Konstanta untuk ID aplikasi di Firebase
 
     // Firebase Initialization and Authentication
-    const firebaseConfig = JSON.parse(__firebase_config);
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_33r5f_4M7aX0XuyhRIFGoyPESfjGnUI",
+      authDomain: "expenses-a36ff.firebaseapp.com",
+      projectId: "expenses-a36ff",
+      storageBucket: "expenses-a36ff.firebasestorage.app",
+      messagingSenderId: "306521276424",
+      appId: "1:306521276424:web:654020afbefbbd4d8311bd",
+      measurementId: "G-1NSLPX2568"
+    };
+    // Anda bisa menyimpan konfigurasi ini di sini dengan aman karena kode JavaScript
+    // di sisi klien memang dirancang untuk bisa diakses publik.
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const authInstance = firebase.auth();
 
     const setupRealtimeDataListener = () => {
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const expensesCollectionRef = db.collection(`artifacts/${appId}/users/${userId}/expenses`);
+        const expensesCollectionRef = db.collection(`artifacts/${FIREBASE_APP_ID}/users/${userId}/expenses`);
         const q = expensesCollectionRef.orderBy('tanggal', 'desc');
 
         q.onSnapshot((snapshot) => {
@@ -232,8 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
             if (userConfirmed) {
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    const docRef = db.collection(`artifacts/${appId}/users/${userId}/expenses`).doc(id);
+                    const docRef = db.collection(`artifacts/${FIREBASE_APP_ID}/users/${userId}/expenses`).doc(id);
                     await docRef.delete();
                     // Tidak perlu panggil showMessage, karena onSnapshot akan otomatis update UI
                     // dan menghapus item, yang sudah merupakan feedback visual yang cukup.
@@ -245,7 +253,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ---- Gemini API Integrations ----
+    // ---- Gemini API Helper Function ----
+    /**
+     * Memanggil Gemini API melalui proxy serverless dengan penanganan error terpusat.
+     * @param {string} prompt - Prompt yang akan dikirim ke AI.
+     * @returns {Promise<string>} - Teks respons dari AI.
+     * @throws {Error} - Melemparkan error jika panggilan API gagal.
+     */
+    const callGeminiAPI = async (prompt) => {
+        const response = await fetch(geminiProxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
+
+        if (!response.ok) {
+            let errorBody = `Status: ${response.status}`;
+            try {
+                const errorJson = await response.json();
+                errorBody += ` - Pesan: ${errorJson.error?.message || JSON.stringify(errorJson)}`;
+            } catch (e) { /* Abaikan jika body bukan JSON */ }
+            throw new Error(`Server AI merespons dengan error. ${errorBody}`);
+        }
+
+        const result = await response.json();
+        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+            throw new Error("Gagal mendapatkan konten teks dari respons AI.");
+        }
+        return text;
+    };
     
     // Logika untuk menyimpan pengeluaran tunggal
     form.addEventListener('submit', async (e) => {
@@ -259,8 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const expensesCollectionRef = db.collection(`artifacts/${appId}/users/${userId}/expenses`);
+            const expensesCollectionRef = db.collection(`artifacts/${FIREBASE_APP_ID}/users/${userId}/expenses`);
             await expensesCollectionRef.add(newExpense);
             showMessage("Pengeluaran berhasil disimpan!", "success");
             form.reset();
@@ -281,8 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoader();
         hideApiMessage();
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const expensesCollectionRef = db.collection(`artifacts/${appId}/users/${userId}/expenses`);
+        const expensesCollectionRef = db.collection(`artifacts/${FIREBASE_APP_ID}/users/${userId}/expenses`);
 
         try {
             const snapshot = await expensesCollectionRef.get();
@@ -332,54 +367,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Logika untuk menyarankan kategori dengan Gemini API
-    if (suggestBtn) {
-        suggestBtn.addEventListener('click', async () => {
-            const description = deskripsiInput.value.trim();
-            if (!description) {
-                showApiMessage("Masukkan deskripsi pengeluaran terlebih dahulu.", "error");
-                return;
-            }
-
-            hideApiMessage();
-            showLoader();
-
-            const prompt = `Berikan satu kata kategori untuk deskripsi pengeluaran berikut: "${description}". Pilih dari kategori yang sudah umum seperti: Makanan, Transportasi, Belanja, Hiburan, Tagihan, Lain-lain. Berikan hanya nama kategori, tanpa penjelasan.`;
-
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    responseMimeType: "text/plain",
-                },
-            };
-
-            try {
-                const response = await fetch(geminiProxyUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
-                });
-                const result = await response.json();
-                const category = result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Tidak diketahui";
-                
-                if (kategoriSelect) {
-                    for (let i = 0; i < kategoriSelect.options.length; i++) {
-                        if (kategoriSelect.options[i].value.toLowerCase() === category.toLowerCase()) {
-                            kategoriSelect.value = kategoriSelect.options[i].value;
-                            break;
-                        }
-                    }
-                }
-                showApiMessage(`Kategori yang disarankan: ${category}`, "success");
-            } catch (error) {
-                showApiMessage("Terjadi kesalahan saat menyarankan kategori.", "error");
-                console.error(error);
-            } finally {
-                hideLoader();
-            }
-        });
-    }
-
     // Logika baru untuk mendeteksi item dari deskripsi
     detectItemsBtn.addEventListener('click', async () => {
         console.log("Tombol 'Deteksi Item' diklik. Memulai proses...");
@@ -394,30 +381,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const prompt = `Ekstrak setiap item, harga, kategori, tempat pembelian, dan metode pembayaran dari teks berikut: "${description}". Kategorikan setiap item ke dalam: Makanan, Transportasi, Belanja, Hiburan, Tagihan, atau Lain-lain. Jika harga, tempat, atau metode pembayaran tidak disebutkan, gunakan nilai null atau string kosong. Kembalikan hasilnya sebagai array JSON yang valid. Contoh input "saya tadi beli rokok di warung madua kisma seharga 2500 bayarnya pakai qris mandiri" harus menghasilkan [{"item": "rokok", "harga": 2500, "kategori": "Belanja", "tempat": "warung madua kisma", "metodePembayaran": "qris mandiri"}]. Jangan sertakan teks atau penjelasan lain, hanya array JSON.`;
 
-        let result; // Definisikan di luar try-catch untuk logging
         try {
-            const response = await fetch(geminiProxyUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
-            result = await response.json();
-            
-            // --- LOGGING UNTUK DEBUG ---
-            console.log("Raw API Response:", result);
-
-            // Kembali ke metode parsing teks yang lebih andal
-            let jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            if (!jsonString) {
-                if (result?.candidates?.[0]?.finishReason === 'SAFETY') {
-                     throw new Error("Respons diblokir karena alasan keamanan. Coba dengan deskripsi yang berbeda.");
-                }
-                if (result.promptFeedback) {
-                    console.error("Prompt Feedback:", result.promptFeedback);
-                }
-                throw new Error("Gagal mendapatkan respons teks dari API.");
-            }
+            let jsonString = await callGeminiAPI(prompt);
 
             // Membersihkan string dari markdown code block yang mungkin ditambahkan oleh AI
             jsonString = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -433,11 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             showApiMessage("Terjadi kesalahan saat mendeteksi item. Cek console untuk detail.", "error");
-            console.error("Error during item detection:", error);
-            // Log respons mentah jika tersedia, ini sangat membantu debug
-            if (result) {
-                console.error("Raw API response that caused the error:", result);
-            }
+            console.error("Error during item detection:", error.message);
         } finally {
             hideLoader();
         }
@@ -477,8 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const tanggal = new Date(tanggalInput.value);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const expensesCollectionRef = db.collection(`artifacts/${appId}/users/${userId}/expenses`);
+        const expensesCollectionRef = db.collection(`artifacts/${FIREBASE_APP_ID}/users/${userId}/expenses`);
         
         detectionModal.classList.add('hidden');
         showApiMessage("Menyimpan semua transaksi...", "success");
@@ -520,6 +480,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const uidFromUrl = urlParams.get('uid');
 
+    // Pindahkan logika copy dari inline HTML ke sini
+    syncLinkInput.addEventListener('click', function() {
+        this.select();
+        // Coba metode modern terlebih dahulu
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(this.value).then(() => {
+                alert('Link disalin ke clipboard!');
+            });
+        } else {
+            // Fallback untuk browser lama
+            document.execCommand('copy');
+            alert('Link disalin ke clipboard!');
+        }
+    });
     // Fungsi untuk membuat QR Code (diambil dari langkah sebelumnya)
     const generateQRCode = (url) => {
         const qrCodeCanvas = document.getElementById('qrCodeCanvas');
@@ -646,29 +620,18 @@ Berikan ringkasan yang mencakup:
 Gunakan format **Markdown** yang jelas dan modern. Gunakan heading (contoh: '### Ringkasan'), list, dan tebalkan (bold) bagian-bagian penting. Jika memungkinkan, buat tabel untuk daftar kolom dan tipe datanya. Mulai jawaban Anda langsung dengan ringkasan, tanpa basa-basi.`;
 
                 try {
-                    const response = await fetch(geminiProxyUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt: summaryPrompt })
-                    });
-                    const result = await response.json();
-                    const summaryText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, gagal mendapatkan ringkasan data. Coba lagi.";                    
+                    const summaryText = await callGeminiAPI(summaryPrompt);
                     if (typeof marked !== 'undefined') {
                         dataSummaryContent.innerHTML = marked.parse(summaryText);
                     } else {
                         dataSummaryContent.textContent = summaryText; // Fallback jika marked.js gagal dimuat
                     }
-
                     // Tampilkan tombol saran setelah ringkasan berhasil dimuat
                     renderSuggestionButtons(results.meta.fields);
                     suggestedAnalysisContainer.classList.remove('hidden');
                 } catch (error) {
-                    // Tangkap error dari fetch atau parsing JSON
-                    let errorMessage = "Terjadi kesalahan saat menghubungi server AI untuk ringkasan. Silakan coba lagi nanti.";
-                    if (error.message) {
-                        errorMessage = `Terjadi kesalahan: ${error.message}`;
-                    }
-                    dataSummaryContent.textContent = errorMessage;
+                    // Menampilkan pesan error yang lebih spesifik
+                    dataSummaryContent.innerHTML = `<p class="message error">Gagal memuat ringkasan: ${error.message}</p>`;
                     console.error("Error getting data summary:", error);
                 } finally {
                     dataSummaryLoader.classList.add('hidden');
@@ -729,13 +692,7 @@ Untuk setiap metode, berikan penjelasan yang terstruktur dengan format Markdown:
 Pastikan penjelasan mudah dipahami oleh seseorang yang baru belajar analisis data. Mulai langsung dengan metode pertama.`;
 
         try {
-            const response = await fetch(geminiProxyUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: guidePrompt })
-            });
-            const result = await response.json();
-            const guideText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Gagal memuat panduan. Coba lagi.";
+            const guideText = await callGeminiAPI(guidePrompt);
             
             if (typeof marked !== 'undefined') {
                 guideContent.innerHTML = marked.parse(guideText);
@@ -743,7 +700,7 @@ Pastikan penjelasan mudah dipahami oleh seseorang yang baru belajar analisis dat
                 guideContent.textContent = guideText;
             }
         } catch (error) {
-            guideContent.innerHTML = `<p class="message error">Gagal memuat panduan. Periksa koneksi Anda dan coba lagi.</p>`;
+            guideContent.innerHTML = `<p class="message error">Gagal memuat panduan: ${error.message}</p>`;
             console.error("Error fetching guide:", error);
         } finally {
             guideLoader.classList.add('hidden');
@@ -792,25 +749,14 @@ Tugas Anda:
 5. Gunakan format **Markdown** untuk jawaban Anda (heading, list, tabel, bold). Mulai jawaban Anda langsung dengan hasil analisis, tanpa basa-basi pembukaan.`;
 
         try {
-            const response = await fetch(geminiProxyUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: fullPrompt })
-            });
-            const result = await response.json();
-            const analysisText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, gagal mendapatkan hasil analisis. Coba lagi.";            
+            const analysisText = await callGeminiAPI(fullPrompt);
             if (typeof marked !== 'undefined') {
                 analysisResultContent.innerHTML = marked.parse(analysisText);
             } else {
                 analysisResultContent.textContent = analysisText; // Fallback
             }
         } catch (error) {
-            // Tangkap error dari fetch atau parsing JSON
-            let errorMessage = "Terjadi kesalahan saat menghubungi server AI. Silakan coba lagi nanti.";
-            if (error.message) {
-                errorMessage = `Terjadi kesalahan: ${error.message}`;
-            }
-            analysisResultContent.textContent = errorMessage;
+            analysisResultContent.innerHTML = `<p class="message error">Gagal menjalankan analisis: ${error.message}</p>`;
             console.error("Error running analysis:", error);
         } finally {
             analysisLoader.classList.add('hidden');

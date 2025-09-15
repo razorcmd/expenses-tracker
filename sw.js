@@ -1,13 +1,17 @@
-const CACHE_NAME = 'expense-tracker-v3'; // Versi cache dinaikkan lagi untuk memicu update
+const CACHE_NAME = 'expense-tracker-v5'; // Versi cache dinaikkan untuk memuat script.js yang baru
 const urlsToCache = [
   '/',
   '/index.html',
   '/style.css',
   '/script.js',
+  '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
   'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js',
+  'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap',
   'https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap'
 ];
