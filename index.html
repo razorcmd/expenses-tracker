@@ -1,89 +1,165 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
-
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/12.3.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/12.3.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
-
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Expense Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#A57D65"/>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js" defer></script>
+</head>
+<body>
+    <!-- Preloader untuk loading awal halaman -->
+    <div id="preloader">
+        <div class="preloader-spinner"></div>
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
 
+    <canvas id="bg-animation"></canvas>
+
+    <!-- Navigasi Utama -->
+    <nav class="main-nav">
+        <a href="#" id="nav-expense-tracker" class="active">Pelacak Pengeluaran</a>
+        <a href="#" id="nav-data-analyzer">Asisten Analis Data</a>
+    </nav>
+
+    <!-- Kontainer untuk Pelacak Pengeluaran -->
+    <div id="expense-tracker-page" class="page-container">
+        <div class="container">
+            <h1 class="text-3xl font-bold text-center mb-6">Pelacak Pengeluaran Harian</h1>
+
+            <form id="expenseForm">
+                <div class="form-group">
+                    <label for="tanggal">Tanggal:</label>
+                    <input type="date" id="tanggal" name="tanggal" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="deskripsi">Deskripsi:</label>
+                    <input type="text" id="deskripsi" name="deskripsi" placeholder="Contoh: Beli Kopi 15000, Roti 10000" required>
+                </div>
+                
+                <button type="button" id="detectItemsBtn" class="btn-api">✨ Deteksi Item</button>
+                <div class="form-group">
+                    <label for="kategori">Kategori:</label>
+                    <select id="kategori" name="kategori" required>
+                        <option value="">-- Pilih Kategori --</option>
+                        <option value="Makanan">Makanan</option>
+                        <option value="Transportasi">Transportasi</option>
+                        <option value="Belanja">Belanja</option>
+                        <option value="Hiburan">Hiburan</option>
+                        <option value="Tagihan">Tagihan</option>
+                        <option value="Lain-lain">Lain-lain</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="jumlah">Jumlah (Rp):</label>
+                    <input type="number" id="jumlah" name="jumlah" min="0" step="100" placeholder="Rp" required>
+                </div>
+
+                <button type="submit" class="btn-submit">Simpan Pengeluaran</button>
+            </form>
+
+            <!-- Kontainer untuk Chart -->
+            <div id="chartContainer" class="chart-container hidden">
+                <canvas id="expenseChart"></canvas>
+            </div>
+
+            <button type="button" id="analyzeExpensesBtn" class="btn-api mt-6">✨ Analisis Pengeluaran</button>
+
+            <!-- Bagian Baru untuk Link Sinkronisasi -->
+            <div id="syncSection" class="summary mt-4 hidden">
+                <h2 class="text-lg font-semibold mb-2">Sinkronkan ke Perangkat Lain</h2>
+                <p class="text-sm mb-3">Buka link di bawah ini pada perangkat lain untuk melihat data yang sama.</p>
+                <!-- Tempat untuk menampilkan QR Code -->
+                <div class="qr-container">
+                    <canvas id="qrCodeCanvas"></canvas>
+                </div>
+                <label for="syncLinkInput">Link Sinkronisasi Anda:</label>
+                <input type="text" id="syncLinkInput" readonly 
+                       style="cursor: copy; background-color: rgba(0,0,0,0.05); margin-top: 0.5rem;">
+            </div>
+
+            <div class="summary mt-8 rounded-lg">
+                <h2 class="text-xl font-semibold mb-3">Ringkasan Pengeluaran</h2>
+                <div id="summaryContent" class="space-y-2">
+                    <!-- Ringkasan pengeluaran harian akan ditampilkan di sini -->
+                </div>
+            </div>
+
+            <div id="expenseList" class="mt-6">
+                <!-- Daftar transaksi akan ditampilkan di sini -->
+            </div>
+
+            <div id="message" class="message hidden"></div>
+            <div id="apiMessage" class="message hidden"></div>
+        </div>
+    </div>
+
+    <!-- Kontainer untuk Asisten Analis Data -->
+    <div id="data-analyzer-page" class="page-container hidden">
+        <div class="container">
+            <h1 class="text-3xl font-bold text-center mb-6">Asisten Analis Data</h1>
+            <div class="form-group">
+                <label for="csvFileInput">1. Unggah File Data (.csv)</label>
+                <input type="file" id="csvFileInput" accept=".csv" class="file-input">
+            </div>
+
+            <div id="dataSummaryContainer" class="summary mt-4 hidden">
+                <h2 class="text-xl font-semibold mb-3">Ringkasan Data Awal</h2>
+                <div id="dataSummaryLoader" class="loader hidden"></div>
+                <div id="dataSummaryContent"></div>
+            </div>
+
+            <div id="suggestedAnalysisContainer" class="summary mt-4 hidden">
+                <h2 class="text-xl font-semibold mb-3">Saran Analisis Cepat</h2>
+                <div id="suggestedAnalysisButtons" class="button-grid"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="analysisPrompt">2. Tulis Perintah Analisis (atau pilih saran di atas)</label>
+                <textarea id="analysisPrompt" rows="4" placeholder="Contoh: Lakukan analisis regresi linear untuk memprediksi 'penjualan' berdasarkan 'iklan'. Berikan juga ringkasan statistik deskriptif untuk semua kolom."></textarea>
+            </div>
+            <button id="runAnalysisBtn" class="btn-submit">Buat Rencana Analisis</button>
+
+            <div id="analysisResultContainer" class="summary mt-6 hidden">
+                <h2 id="analysisResultTitle" class="text-xl font-semibold mb-3">Hasil Analisis AI</h2>
+                <div id="analysisLoader" class="loader hidden"></div>
+                <div id="analysisResultContent"></div>
+                <button id="executePlanBtn" class="btn-submit mt-4 hidden">Jalankan Rencana & Dapatkan Laporan Akhir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal untuk Menampilkan Hasil Deteksi -->
+    <div id="detectionModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Item yang Dideteksi</h2>
+            <div id="detectedItemsList" class="space-y-4">
+                <!-- Daftar item dari Gemini API akan muncul di sini -->
+            </div>
+            <button id="confirmItemsBtn" class="btn-submit mt-6">Simpan sebagai Transaksi</button>
+            <button id="cancelModalBtn" class="btn-api mt-4">Batalkan</button>
+        </div>
+    </div>
+    <script src="script.js" defer></script>
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('ServiceWorker registrasi berhasil: ', registration))
+                    .catch(err => console.log('ServiceWorker registrasi gagal: ', err));
+            });
         }
-      });
     </script>
-  </body>
+</body>
 </html>
