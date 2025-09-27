@@ -29,7 +29,7 @@ exports.handler = async function(event) {
             };
         }
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
         const payload = {
             contents: [{ parts: [{ text: prompt }] }],
         };
@@ -55,4 +55,3 @@ exports.handler = async function(event) {
         };
     }
 };
-
