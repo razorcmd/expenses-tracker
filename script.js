@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- URL Proxy Aman ke Gemini API ---
     // Ini adalah path ke serverless function kita di Netlify.
-    const geminiProxyUrl = "/.netlify/functions/gemini-proxy";
     const FIREBASE_APP_ID = 'default-app-id'; // Konstanta untuk ID aplikasi di Firebase
 
     // Firebase Initialization and Authentication
@@ -256,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @throws {Error} - Melemparkan error jika panggilan API gagal.
      */
     const callGeminiAPI = async (prompt) => {
-        // --- LOGIKA BARU: Panggilan Langsung ke Google API ---
+        // --- LOGIKA BARU: Panggilan Langsung ke Google API, bukan melalui proxy ---
         const geminiApiKey = firebaseConfig.apiKey; // Ambil dari konfigurasi Firebase
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
         const payload = {
@@ -268,10 +267,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const delay = 2000; // 2 detik
     
         for (let i = 0; i < maxRetries; i++) {
-            const response = await fetch(apiUrl, { // Gunakan apiUrl langsung
+            const response = await fetch(apiUrl, { // Menggunakan apiUrl langsung, bukan geminiProxyUrl
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload) // Gunakan payload yang sudah dibuat
+                body: JSON.stringify(payload) // Menggunakan payload yang sudah dibuat
             });
     
             // Jika sukses, langsung kembalikan hasil
@@ -299,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await new Promise(resolve => setTimeout(resolve, delay));
             } else { // Untuk error lain yang tidak bisa di-retry
                 let errorBody = `Status: ${response.status}`;
-                try { 
+                try {
                     const errorJson = await response.json(); 
                     errorBody += ` - Pesan: ${errorJson.error?.message || JSON.stringify(errorJson)}`; 
                 } catch (e) { 
