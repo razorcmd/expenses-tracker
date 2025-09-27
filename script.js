@@ -256,14 +256,22 @@ document.addEventListener('DOMContentLoaded', () => {
      * @throws {Error} - Melemparkan error jika panggilan API gagal.
      */
     const callGeminiAPI = async (prompt) => {
+        // --- LOGIKA BARU: Panggilan Langsung ke Google API ---
+        const geminiApiKey = firebaseConfig.apiKey; // Ambil dari konfigurasi Firebase
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+        const payload = {
+            contents: [{ parts: [{ text: prompt }] }],
+        };
+        // --- AKHIR LOGIKA BARU ---
+
         const maxRetries = 3;
         const delay = 2000; // 2 detik
     
         for (let i = 0; i < maxRetries; i++) {
-            const response = await fetch(geminiProxyUrl, {
+            const response = await fetch(apiUrl, { // Gunakan apiUrl langsung
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
+                body: JSON.stringify(payload) // Gunakan payload yang sudah dibuat
             });
     
             // Jika sukses, langsung kembalikan hasil
@@ -291,7 +299,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 await new Promise(resolve => setTimeout(resolve, delay));
             } else { // Untuk error lain yang tidak bisa di-retry
                 let errorBody = `Status: ${response.status}`;
-                try { const errorJson = await response.json(); errorBody += ` - Pesan: ${errorJson.error?.message || JSON.stringify(errorJson)}`; } catch (e) { /* Abaikan */ }
+                try { 
+                    const errorJson = await response.json(); 
+                    errorBody += ` - Pesan: ${errorJson.error?.message || JSON.stringify(errorJson)}`; 
+                } catch (e) { 
+                    // Jika body bukan JSON, tambahkan teks respons mentah jika ada
+                    errorBody += ` - Respons: ${await response.text()}`;
+                }
                 throw new Error(`Server AI merespons dengan error: ${errorBody}`);
             }
         }
